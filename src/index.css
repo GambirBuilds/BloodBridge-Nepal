@@ -1,0 +1,63 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+@theme static {
+  --color-background: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-foreground: #1F2937;
+  --color-muted: #4B5563;
+  --color-subtle: #6B7280;
+  --color-border: #CBD5E1;
+  --color-primary: #DC2626;
+  --color-primary-deep: #991B1B;
+  --color-primary-tint: #FEF2F2;
+  --color-primary-foreground: #FFFFFF;
+  --color-success: #16A34A;
+  --color-warning: #B45309;
+  --color-danger: #B91C1C;
+
+  --font-sans: "Instrument Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+
+  --text-display: clamp(1.875rem, 1.35rem + 1.6vw, 2.875rem);
+  --text-display--line-height: 1.12;
+  --text-display--font-weight: 600;
+
+  --text-title: clamp(1.25rem, 1.1rem + 0.5vw, 1.625rem);
+  --text-title--line-height: 1.22;
+  --text-title--font-weight: 600;
+
+  --radius-card: 0.625rem;
+  --radius-control: 0.4375rem;
+  --shadow-surface: 0 1px 2px 0 rgba(31, 41, 55, 0.04);
+  --shadow-float: 0 12px 28px -6px rgba(31, 41, 55, 0.12);
+}
+
+html {
+  font-family: var(--font-sans);
+  font-synthesis-weight: none;
+  color: var(--color-foreground);
+  background-color: var(--color-background);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  text-wrap: balance;
+}
+
+.map-halo-label {
+  paint-order: stroke;
+  stroke: var(--color-surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *:not(.animate-spin):not(.animate-pulse),
+  *:not(.animate-spin):not(.animate-pulse)::before,
+  *:not(.animate-spin):not(.animate-pulse)::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

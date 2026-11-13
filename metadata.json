@@ -1,0 +1,6 @@
+{
+  "name": "BLOODBRIDGE Nepal",
+  "description": "Voluntary blood donor discovery and hospital blood request coordination platform for Nepal. Connecting Lives, One Donation at a Time.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

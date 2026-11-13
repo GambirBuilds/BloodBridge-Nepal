@@ -1,0 +1,314 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  DONOR
+  REQUESTER
+  HOSPITAL
+  ADMIN
+}
+
+enum BloodGroup {
+  A_POSITIVE
+  A_NEGATIVE
+  B_POSITIVE
+  B_NEGATIVE
+  AB_POSITIVE
+  AB_NEGATIVE
+  O_POSITIVE
+  O_NEGATIVE
+}
+
+enum AvailabilityPreference {
+  AVAILABLE_NOW
+  WEEKENDS_AND_EVENINGS
+  EMERGENCY_ONLY
+  TEMPORARILY_PAUSED
+}
+
+enum ContactMethod {
+  PLATFORM_NOTIFICATION
+  HOSPITAL_DESK_CALL
+  SMS_ALERT
+}
+
+enum RequestUrgency {
+  CRITICAL
+  URGENT
+  SCHEDULED_SURGERY
+}
+
+enum RequestStatus {
+  PENDING
+  UNDER_VERIFICATION
+  VERIFIED
+  DONOR_COORDINATION
+  FULFILLED
+  CANCELLED
+  REJECTED
+}
+
+enum HospitalVerificationStatus {
+  PENDING
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+}
+
+enum InvitationStatus {
+  SENT
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model User {
+  id               String            @id @default(uuid())
+  email            String            @unique
+  passwordHash     String
+  fullName         String
+  phone            String            @unique
+  role             Role              @default(DONOR)
+  status           UserStatus        @default(ACTIVE)
+  district         String
+  province         String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  donorProfile     DonorProfile?
+  requesterProfile RequesterProfile?
+  hospitalStaff    HospitalStaff?
+  notifications    Notification[]
+  auditLogs        AuditLog[]        @relation("UserAuditLogs")
+
+  @@index([role])
+  @@index([email])
+  @@index([district, province])
+}
+
+model DonorProfile {
+  id                        String                 @id @default(uuid())
+  userId                    String                 @unique
+  user                      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bloodGroup                BloodGroup
+  province                  String
+  district                  String
+  municipality              String
+  approximateLocation       String?
+  shareMunicipalityPublicly Boolean                @default(true)
+  preferredContactMethod    ContactMethod          @default(PLATFORM_NOTIFICATION)
+  availabilityPreference    AvailabilityPreference @default(AVAILABLE_NOW)
+  notificationsPaused       Boolean                @default(false)
+  consentDonorRequests      Boolean                @default(true)
+  consentPrivacy            Boolean                @default(true)
+  publicDisplayMode         String                 @default("first_initial")
+  createdAt                 DateTime               @default(now())
+  updatedAt                 DateTime               @updatedAt
+
+  donorRequests             DonorRequest[]
+  donationRecords           DonationRecord[]
+
+  @@index([bloodGroup])
+  @@index([province, district])
+  @@index([availabilityPreference, notificationsPaused])
+}
+
+model RequesterProfile {
+  id            String         @id @default(uuid())
+  userId        String         @unique
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  district      String
+  province      String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  bloodRequests BloodRequest[]
+}
+
+model Hospital {
+  id                         String                     @id @default(uuid())
+  hospitalName               String
+  institutionType            String                     @default("Public Hospital")
+  registrationNumber         String                     @unique
+  address                    String
+  province                   String
+  district                   String
+  municipality               String
+  officialEmail              String                     @unique
+  contactNumber              String
+  emergencyDeskPhone         String?
+  authorizedRepresentative   String
+  representativeDesignation  String
+  verificationStatus         HospitalVerificationStatus @default(PENDING)
+  verifiedAt                 DateTime?
+  rejectionReason            String?
+  verificationDocReference   String
+  operatingHours             String                     @default("24-Hour Transfusion Desk")
+  regulatedCrossMatchFeeNPR  Int                        @default(750)
+  availableBloodUnits        Json                       @default("{\"A+\":0,\"A-\":0,\"B+\":0,\"B-\":0,\"AB+\":0,\"AB-\":0,\"O+\":0,\"O-\":0}")
+  createdAt                  DateTime                   @default(now())
+  updatedAt                  DateTime                   @updatedAt
+
+  staff                      HospitalStaff[]
+  bloodRequests              BloodRequest[]
+  donationRecords            DonationRecord[]
+  verifications              HospitalVerification[]
+
+  @@index([district, province])
+  @@index([verificationStatus])
+}
+
+model HospitalStaff {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hospitalId String
+  hospital   Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  roleTitle  String
+  shift      String   @default("Day Shift")
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([hospitalId])
+}
+
+model BloodRequest {
+  id                       String         @id @default(uuid())
+  requestCode              String         @unique
+  requesterProfileId       String
+  requesterProfile         RequesterProfile @relation(fields: [requesterProfileId], references: [id], onDelete: Cascade)
+  patientName              String
+  contactPhone             String
+  contactEmail             String?
+  bloodGroup               BloodGroup
+  unitsRequired            Int
+  urgency                  RequestUrgency @default(URGENT)
+  hospitalId               String
+  hospital                 Hospital       @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  hospitalName             String
+  province                 String
+  district                 String
+  municipality             String
+  requiredDate             DateTime
+  requestDetails           String
+  status                   RequestStatus  @default(PENDING)
+  hospitalVerificationNote String?
+  verifiedByStaffName      String?
+  verifiedAt               DateTime?
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
+
+  donorRequests            DonorRequest[]
+  donationRecords          DonationRecord[]
+
+  @@index([status])
+  @@index([bloodGroup])
+  @@index([district, province])
+  @@index([hospitalId])
+}
+
+model DonorRequest {
+  id             String           @id @default(uuid())
+  bloodRequestId String
+  bloodRequest   BloodRequest     @relation(fields: [bloodRequestId], references: [id], onDelete: Cascade)
+  donorProfileId String
+  donorProfile   DonorProfile     @relation(fields: [donorProfileId], references: [id], onDelete: Cascade)
+  status         InvitationStatus @default(SENT)
+  responseNote   String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([bloodRequestId, donorProfileId])
+  @@index([donorProfileId])
+  @@index([status])
+}
+
+model DonationRecord {
+  id             String       @id @default(uuid())
+  donorProfileId String
+  donorProfile   DonorProfile @relation(fields: [donorProfileId], references: [id], onDelete: Restrict)
+  bloodRequestId String?
+  bloodRequest   BloodRequest? @relation(fields: [bloodRequestId], references: [id], onDelete: SetNull)
+  hospitalId     String
+  hospital       Hospital     @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  units          Int          @default(1)
+  certificateRef String       @unique
+  donationDate   DateTime     @default(now())
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([donorProfileId])
+  @@index([hospitalId])
+}
+
+model HospitalVerification {
+  id           String                     @id @default(uuid())
+  hospitalId   String
+  hospital     Hospital                   @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  status       HospitalVerificationStatus
+  notes        String?
+  reviewedBy   String?
+  reviewedAt   DateTime                   @default(now())
+  createdAt    DateTime                   @default(now())
+
+  @@index([hospitalId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  category  String   @default("System")
+  actionPath String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, read])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation("UserAuditLogs", fields: [userId], references: [id], onDelete: SetNull)
+  actorName  String
+  actorRole  Role
+  action     String
+  targetType String
+  targetId   String?
+  details    Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorRole])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model Report {
+  id          String   @id @default(uuid())
+  reportType  String
+  title       String
+  periodStart DateTime
+  periodEnd   DateTime
+  data        Json
+  generatedBy String
+  createdAt   DateTime @default(now())
+
+  @@index([reportType])
+}

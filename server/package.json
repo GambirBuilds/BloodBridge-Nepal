@@ -1,0 +1,11 @@
+{
+  "name": "bloodbridge-server",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "seed": "node prisma/seed.js",
+    "test": "node tests/api.test.js"
+  }
+}
